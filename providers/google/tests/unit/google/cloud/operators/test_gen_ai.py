@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from unittest import mock
 
+import pytest
+
 from google.genai.types import (
     Content,
     CreateCachedContentConfig,
@@ -410,7 +412,23 @@ class TestGenAIGeminiListBatchJobsOperator:
             gemini_api_key=TEST_GEMINI_API_KEY,
         )
         mock_hook.return_value.list_batch_jobs.assert_called_once_with(list_batch_jobs_config=None)
+        
 
+class TestGenAIGeminiListBatchJobsOperatorExceptions:
+    @mock.patch(GEN_AI_PATH.format("GenAIGeminiAPIHook"))
+    def test_execute_raises_exception_when_hook_fails(self, mock_hook):
+        mock_hook.return_value.list_batch_jobs.side_effect = Exception("API failure")
+        op = GenAIGeminiListBatchJobsOperator(
+            task_id=TASK_ID,
+            project_id=GCP_PROJECT,
+            location=GCP_LOCATION,
+            gemini_api_key=TEST_GEMINI_API_KEY,
+            gcp_conn_id=GCP_CONN_ID,
+            impersonation_chain=IMPERSONATION_CHAIN,
+        )
+
+        with pytest.raises(Exception, match="API failure"):
+            op.execute(context={"ti": mock.MagicMock()})
 
 class TestGenAIGeminiDeleteBatchJobOperator:
     @mock.patch(GEN_AI_PATH.format("GenAIGeminiAPIHook"))
